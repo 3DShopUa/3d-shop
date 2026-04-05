@@ -15,7 +15,7 @@ const products = [
     },
     { 
         id: 3, title: "Кріпер Minecraft", 
-        currentPrice: 180, oldPrice: null, 
+        currentPrice: 25, oldPrice:50, 
         cat: ['toys'], desc: "Фігурка Кріпера для фанатів гри.", 
         imgs: ['creeper.jpg'] 
     }

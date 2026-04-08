@@ -228,4 +228,4 @@ header { background: white; padding: 20px 0; border-bottom: 1px solid #eee; posi
     box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
 }
 .review-stars { color: #ff9500; }
- (min-width: 760px) {     .container {         max-width: 1080px;     }     .grid {          grid-template-columns: 2fr 2fr 2fr 2fr;     } }
+@media (min-width: 760px) {     .container {         max-width: 1080px;     }     .grid {          grid-template-columns: 2fr 2fr 2fr 2fr;     } }

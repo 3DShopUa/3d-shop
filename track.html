@@ -1,69 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
-    <title>Відстеження замовлення - 3DPrintCraft</title>
     <meta charset="UTF-8">
-    <style>
-    body { 
-        background: #0a0a0a; 
-        color: #ffff; 
-        font-family: 'Segoe UI', sans-serif; 
-        text-align: center; 
-        padding: 50px 20px; 
-    }
-
-    .status-box { 
-        background: #151515; 
-        padding: 40px; 
-        border-radius: 25px; 
-        border: 2px solid #333; 
-        display: inline-block; 
-        min-width: 320px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    /* Основний колір статусу (помаранчевий за замовчуванням) */
-    .status-badge { 
-        background: #ff9500; 
-        color: #000; 
-        padding: 12px 25px; 
-        border-radius: 12px; 
-        font-weight: 800; 
-        font-size: 22px; 
-        display: inline-block;
-        margin-bottom: 20px;
-        text-transform: uppercase;
-        box-shadow: 0 0 20px rgba(255, 149, 0, 0.3);
-    }
-
-    /* Кольори для конкретних статусів */
-    .status-printing { background: #00d4ff; color: #000; box-shadow: 0 0 20px rgba(0, 212, 255, 0.4); } /* Блакитний для друку */
-    .status-ready { background: #28a745; color: #fff; box-shadow: 0 0 20px rgba(40, 167, 69, 0.4); }   /* Зелений для готово */
-    .status-delivery { background: #6f42c1; color: #fff; box-shadow: 0 0 20px rgba(111, 66, 193, 0.4); } /* Фіолетовий для дороги */
-
-    .item-name { color: #aaa; font-size: 18px; margin: 15px 0; }
-    .time-stamp { color: #555; font-size: 13px; }
-</style>
-</head>
-<body>
-    <h1>Твоє замовлення 📦</h1>
-    <div id="loader">Завантаження статусу...</div>
-    <div id="content" style="display:none;">
-        <div class="status-box">
-            <div id="status" class="status-badge">⏳ Перевірка...</div>
-            <div id="item" class="item-name">Товар...</div>
-            <p id="time" style="font-size: 12px; color: #555;"></p>
-        </div>
-    </div>
-	<div style="margin-top: 30px;">
-    <a href="index.html" style="text-decoration: none; color: #ff9500; border: 1px solid #ff9500; padding: 10px 20px; border-radius: 8px; font-weight: bold; transition: 0.3s;">
-        ← Повернутися в магазин
-    </a>
-</div>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трекінг замовлень | 3DPrintCraftUA</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
+    <style>
+        body { 
+            background: #0a0a0a; 
+            color: #fff; 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            text-align: center; 
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 { color: #ff9500; margin-bottom: 30px; }
+
+        /* Стиль картки замовлення */
+        .status-box { 
+            background: #1a1a1a; 
+            padding: 25px; 
+            border-radius: 20px; 
+            border: 1px solid #333; 
+            margin-bottom: 20px;
+            text-align: left;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .status-box:hover { transform: translateY(-5px); }
+
+        /* Базовий стиль статусу */
+        .status-badge { 
+            display: inline-block;
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            font-weight: 800; 
+            font-size: 14px; 
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            background: #333; /* По замовчуванню сірий */
+        }
+
+        /* Кольори для різних статусів */
+        .status-waiting { background: #ff9500; color: #000; }  /* В черзі */
+        .status-printing { background: #00d4ff; color: #000; } /* Друкується */
+        .status-ready { background: #28a745; color: #fff; }    /* Готово */
+        .status-shipping { background: #6f42c1; color: #fff; } /* В дорозі */
+
+        .item-name { 
+            font-size: 18px; 
+            margin-bottom: 10px; 
+            color: #eee;
+        }
+
+        .time-stamp { 
+            color: #666; 
+            font-size: 12px; 
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ff9500;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            color: #ff9500;
+            text-decoration: none;
+            font-weight: bold;
+        }
+		.container {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 10px; /* Менші відступи для малих екранів */
+        box-sizing: border-box;
+    }
+    
+    h1 { font-size: 24px; } /* Трохи менший шрифт для мобілки */
+    
+    .status-box {
+        padding: 15px; /* Компактніші картки */
+        border-radius: 15px;
+    }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Твої замовлення</h1>
+        
+        <div id="loader" class="loader"></div>
+        <div id="content"></div>
+
+        <a href="index.html" class="back-btn">← Повернутися в магазин</a>
+    </div>
+
     <script>
+        // 1. НАЛАШТУВАННЯ FIREBASE (Твої дані)
         const firebaseConfig = {
             apiKey: "AIzaSyAban86otzMqDuk_XwnqADDNPHICU9tFFs",
             authDomain: "d-shop-status.firebaseapp.com",
@@ -71,28 +123,60 @@
             databaseURL: "https://d-shop-status-default-rtdb.europe-west1.firebasedatabase.app/",
             appId: "1:286708501499:web:eb82c5cf7f7f92746ed95e"
         };
-        firebase.initializeApp(firebaseConfig);
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.database();
 
-        // Беремо номер телефону, який ми зберегли в кошику
-        const phone = localStorage.getItem('tracked_phone');
+        // 2. ОТРИМАННЯ ДАНИХ
+        document.addEventListener('DOMContentLoaded', () => {
+            const phone = localStorage.getItem('tracked_phone');
+            const container = document.getElementById('content');
+            const loader = document.getElementById('loader');
 
-        if (!phone) {
-            document.getElementById('loader').innerText = "Номер телефону не знайдено. Зробіть замовлення спочатку!";
-        } else {
+            if (!phone) {
+                loader.style.display = 'none';
+                container.innerHTML = "<h3>Номер телефону не знайдено 🔎</h3><p>Зробіть замовлення, щоб побачити статус.</p>";
+                return;
+            }
+
+            // Очищаємо сповіщення на іконці, бо ми вже тут
+            localStorage.removeItem('order_notification');
+
+            // Підключаємося до бази
             db.ref('orders/' + phone).on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    document.getElementById('loader').style.display = 'none';
-                    document.getElementById('content').style.display = 'block';
-                    document.getElementById('status').innerText = data.status;
-                    document.getElementById('item').innerText = data.item;
-                    document.getElementById('time').innerText = "Замовлено: " + data.time;
+                const orders = snapshot.val();
+                loader.style.display = 'none';
+                container.innerHTML = ''; 
+
+                if (orders) {
+                    // Виводимо кожне замовлення
+                    Object.values(orders).reverse().forEach(data => {
+                        
+                        // Логіка підбору кольору статусу
+                        let badgeClass = "";
+                        let statusText = data.status || "Обробка";
+                        
+                        if (statusText.includes("черзі")) badgeClass = "status-waiting";
+                        if (statusText.includes("Друк") || statusText.includes("друк")) badgeClass = "status-printing";
+                        if (statusText.includes("Готово") || statusText.includes("пошті")) badgeClass = "status-ready";
+                        if (statusText.includes("дорозі") || statusText.includes("Відправлено")) badgeClass = "status-shipping";
+
+                        const orderDiv = document.createElement('div');
+                        orderDiv.className = 'status-box';
+                        orderDiv.innerHTML = `
+                            <div class="status-badge ${badgeClass}">${statusText}</div>
+                            <div class="item-name">${data.item}</div>
+                            <div class="time-stamp">Замовлено: ${data.time}</div>
+                        `;
+                        container.appendChild(orderDiv);
+                    });
                 } else {
-                    document.getElementById('loader').innerText = "Замовлення для номеру " + phone + " ще не створено.";
+                    container.innerHTML = "<h3>Замовлень для номера " + phone + " не знайдено.</h3>";
                 }
             });
-        }
+        });
     </script>
 </body>
 </html>

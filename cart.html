@@ -96,7 +96,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
 <script>
-    // 1. КОНФІГУРАЦІЯ FIREBASE
+    // 2. КОНФІГУРАЦІЯ FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyAban86otzMqDuk_XwnqADDNPHICU9tFFs",
         authDomain: "d-shop-status.firebaseapp.com",
@@ -105,17 +105,20 @@
         appId: "1:286708501499:web:eb82c5cf7f7f92746ed95e"
     };
 
+    // Ініціалізація бази
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
 
-    // 2. ЗАПУСК ПРИ ЗАВАНТАЖЕННІ
+    // 3. ЗАПУСК ПРИ ЗАВАНТАЖЕННІ
     document.addEventListener('DOMContentLoaded', () => {
         loadUserData();
         updateCartPage();
-        
-        // Маска для телефону
+        setupInputs();
+    });
+
+    function setupInputs() {
         const phoneInput = document.getElementById('u-phone');
         if (phoneInput) {
             phoneInput.addEventListener('input', (e) => {
@@ -125,16 +128,24 @@
             });
         }
 
-        // Заборона цифр в імені
         const nameInput = document.getElementById('u-name');
         if (nameInput) {
             nameInput.addEventListener('input', (e) => {
                 e.target.value = e.target.value.replace(/[0-9!@#$%^&*()_+=[\]{};:"\\|,.<>/?]/g, '');
             });
         }
-    });
+    }
 
-    // 3. ФУНКЦІЇ КОШИКА ТА ДАНИХ
+    function saveUserData() {
+        const userData = {
+            name: document.getElementById('u-name').value,
+            phone: document.getElementById('u-phone').value,
+            city: document.getElementById('u-city').value,
+            post: document.getElementById('u-post').value
+        };
+        localStorage.setItem('user_shipping_info', JSON.stringify(userData));
+    }
+
     function loadUserData() {
         const saved = localStorage.getItem('user_shipping_info');
         if (saved) {
@@ -179,9 +190,9 @@
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid #eee;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <button class="qty-btn" onclick="changeQty(${item.id}, -1)">-</button>
+                        <button class="qty-btn" onclick="window.changeQty(${item.id}, -1)">-</button>
                         <b>${item.qty}</b>
-                        <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
+                        <button class="qty-btn" onclick="window.changeQty(${item.id}, 1)">+</button>
                     </div>
                     <div style="font-weight:800; color:#ff9500">${item.price * item.qty} ₴</div>
                 </div>`;
@@ -207,17 +218,15 @@
         updateCartPage();
     };
 
-    // 4. ГОЛОВНА ФУНКЦІЯ ВІДПРАВКИ
+    // 4. ГОЛОВНА ФУНКЦІЯ: ТЕЛЕГРАМ + ФАЄРБЕЙС + ЕФЕКТИ
     async function sendOrder() {
         const btn = document.getElementById('send-order-btn');
-        const name = document.getElementById('u-name').value;
+        const name = document.getElementById('u-name').value.trim();
         const phoneRaw = document.getElementById('u-phone').value;
-        const city = document.getElementById('u-city').value;
-        const post = document.getElementById('u-post').value;
         const userPhone = phoneRaw.replace(/\D/g, '');
 
         if (!name || userPhone.length < 10) {
-            alert("Заповни ім'я та правильний номер!");
+            alert("Заповни ім'я та номер телефону!");
             return;
         }
 
@@ -228,22 +237,24 @@
         btn.disabled = true;
         btn.innerText = "Відправка...";
 
+        const orderId = Date.now();
         const itemNames = items.map(i => `${i.title} (x${i.qty})`).join(", ");
-        const totalSum = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        const totalAmount = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
         try {
-            // А. Запис у Firebase (Статус В черзі)
-            await db.ref('orders/' + userPhone).set({
+            // А. ЗАПИС У FIREBASE (чекаємо через await)
+            await db.ref('orders/' + userPhone + '/' + orderId).set({
                 customer: name,
                 item: itemNames,
                 status: "⏳ В черзі",
-                time: new Date().toLocaleString()
+                time: new Date().toLocaleString(),
+                id: orderId
             });
 
-            // Б. Відправка в Telegram
+            // Б. ВІДПРАВКА В TELEGRAM
             const token = '8756666594:AAHpx1RL_NXlKxSzWCBP23HjB8wLJVk0gRw';
             const chat_id = '5796612318';
-            const text = `📦 ЗАМОВЛЕННЯ\n👤 ${name}\n📞 ${phoneRaw}\n📍 ${city}\n🏢 ${post}\n🛒 ${itemNames}\n💰 РАЗОМ: ${totalSum} ₴`;
+            const text = `📦 ЗАМОВЛЕННЯ #${orderId}\n👤 ${name}\n📞 ${phoneRaw}\n🛒 ${itemNames}\n💰 РАЗОМ: ${totalAmount} ₴`;
 
             await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
@@ -251,29 +262,27 @@
                 body: JSON.stringify({ chat_id, text })
             });
 
-            // В. Успіх: Кнопка стає зеленою
+            // В. ВІЗУАЛЬНИЙ УСПІХ
             btn.style.background = "#28a745";
             btn.style.borderColor = "#28a745";
             btn.innerText = "Успішно! ✅";
 
-            // Г. Логіка сповіщення (червона одиничка)
+            // Г. ЗБЕРЕЖЕННЯ СТАНУ
+            saveUserData();
             localStorage.setItem('order_notification', '1');
             localStorage.setItem('tracked_phone', userPhone);
             localStorage.removeItem('shop_cart');
-            
-            // Зберігаємо дані для автозаповнення на майбутнє
-            localStorage.setItem('user_shipping_info', JSON.stringify({name, phone: phoneRaw, city, post}));
 
-            // Д. Перехід на головну через 1.5 сек
+            // Д. ПЕРЕХІД НА ГОЛОВНУ
             setTimeout(() => { 
                 window.location.href = 'index.html'; 
             }, 1500);
 
-        } catch (e) {
-            console.error(e);
-            alert("Помилка! Перевір інтернет або правила Firebase.");
+        } catch (error) {
+            console.error("Помилка:", error);
+            alert("Сталася помилка зв'язку. Спробуй ще раз.");
             btn.disabled = false;
-            btn.innerText = "Замовити ще раз";
+            btn.innerText = "Замовити через Telegram";
         }
     }
 </script>
